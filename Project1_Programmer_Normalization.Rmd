@@ -1,0 +1,90 @@
+---
+title: "Project_1_Normalization"
+author: "Ashley Morrison"
+output: html_document
+date: "2023-02-07"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("/projectnb/bf528/users/group_7/project_1/")
+
+#if (!require("BiocManager", quietly = TRUE))
+#  install.packages("BiocManager")
+#BiocManager::install(version = "3.16")
+
+#BiocManager::install(c("affy","affyPLM","sva","AnnotationDbi","hgu133plus2.db"))
+
+library(affy)
+library(affyPLM)
+library(sva)
+library(AnnotationDbi)
+library(hgu133plus2.db)
+install.packages("factoextra")
+install.packages("vctrs")
+install.packages("ggplot2")
+library(vctrs)
+library(ggplot2)
+library(factoextra)
+
+```
+
+## Normalization
+
+Read in data (3.3)
+```{r}
+rawdata <- ReadAffy(celfile.path = "./samples") #read in CEL files
+exps <- rma(rawdata) #background correcting, normalization, and generation expression for CEL files
+
+```
+
+Compute Relative Log Expression (RLE) and Normalized Unscaled Standard Error (NUSE) scores of the microarray samples (3.4)
+info on package: https://bioconductor.org/packages/release/bioc/manuals/affyPLM/man/affyPLM.pdf
+
+QUESTION! Which plot to use to visualize
+```{r}
+data_PLM <- fitPLM(object = rawdata,normalize=TRUE,background = TRUE)
+#image(data_PLM)
+NUSE(data_PLM,xaxt = "n",ylim=c(.9,2.2))
+title(main="Normalized Unscaled Standard Error (NUSE)",xlab = "Sample", ylab = "NUSE")
+
+NUSE(data_PLM,xaxt = "n",ylim=c(.9,1.1))
+title(main="Normalized Unscaled Standard Error (NUSE), Zoomed in",xlab = "Sample", ylab = "NUSE")
+
+
+#add in plot info
+RLE(data_PLM,xaxt = "n",ylim=c(-10,10)) #add in plot info
+title(main="Relative Log Expression (RLE)",xlab = "Sample", ylab = "RLE")
+
+RLE(data_PLM,xaxt = "n") #add in plot info
+title(main="Relative Log Expression (RLE), Zoomed in",xlab = "Sample", ylab = "RLE")
+
+```
+
+
+part 3.5
+
+normalizationcombatbatch --> adjustment variables
+normalizationcombatmod --> features of interest
+
+QUESTIONS --> what to read into combat (raw vs normalized), what to treat each variable as
+```{r}
+metadata <- read.csv("./code/proj_metadata.csv")
+head(metadata)
+
+#read just expression data (USING normalized data)
+edata_rma <- exprs(exps)
+
+#checking that the order of samples is the same between expression and metadata
+substr(colnames(edata_rma), 1, 9) == metadata$geo_accession
+
+#defining model:
+modcombat <- model.matrix(~as.factor(normalizationcombatmod),data = metadata)
+batch <- metadata$normalizationcombatbatch
+
+#Run ComBat
+combat_edata <- ComBat(dat=edata_rma, batch=batch, mod=modcombat)
+
+#write to csv for Analyst role:
+#write.csv(combat_edata, file="proj1_intensity_data.csv")
+```
