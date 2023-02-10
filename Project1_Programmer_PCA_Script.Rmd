@@ -1,0 +1,106 @@
+---
+title: "PCA of Normalized and Corrected Expression Data"
+author: "Ashley Morrison"
+date: "2023-02-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+setwd("~/Documents/BU/__BF528/Project_1")
+
+library(ggplot2)
+library(factoextra)
+library(dplyr)
+library(ggfortify)
+library(mt)
+```
+
+Read in Data:
+```{r}
+data <- read.csv("proj1_intensity_data.csv",header = TRUE,row.names = 1)
+metadata <- read.csv("proj_metadata.csv", header=TRUE, row.names=1)
+
+```
+
+Scale counts:
+```{r}
+#transpose to scale by gene instead of sample
+scaled_combat_edata <- as.data.frame(t(scale(t(data))))
+head(scaled_combat_edata)
+```
+
+Add metadata to data frame to color by subtype when plotting PCA
+```{r}
+formt_data <- data #new copy of data to manipulate 
+
+#make col names match metadata GEO entry 
+colnames(formt_data) <- as.character(substring(colnames(data),1,9))
+
+##I didn't think this next part out well initially, so it's a lot more complex than it needs to be, but it works.
+#Basically I'm just trying to add factors that could be responsible for the separation of the data
+#to the counts so I can color code the PCA plot by that variable later
+
+#transpose metadata and match col names to expression data
+meta_t <- as.data.frame(t(metadata))
+colnames(meta_t) <- as.character(meta_t["geo_accession",]) 
+unique(colnames(meta_t) == colnames(formt_data)) #double check that the names are the same
+
+#rbind metadata to expression data
+full_data <- rbind(formt_data,meta_t)
+tail(full_data) #double check that data added correctly
+final_data <- as.data.frame(t(full_data)) #transpose to call variables more easily later
+
+head(final_data)
+
+```
+Complete PCA:
+```{r}
+#run PCA on scaled data. Set scale and center to F bc we have already scaled the data
+pca_res <- prcomp(scaled_combat_edata,scale=FALSE, center=FALSE)
+
+summary(pca_res)
+
+#Make data frame of components for later analysis
+pca_comp <- as.data.frame(pca_res$rotation)
+head(pca_comp)
+```
+
+Plot First and Second Principal Component, colored by Tumor Subtype:
+```{r}
+#color by subtype:
+fviz_pca_var(pca_res, axes = c(1, 2),label="none",geom = "point")+
+  geom_point(aes(color=final_data$SixSubtypesClassification))+
+  ggtitle("First and Second Principal Component, Colored by Subtype")+
+  labs(color="Cancer Subtype")+
+  xlab("PC1 (11.5%)")+
+  ylab("PC2 (8.4%)")
+```
+
+Looking for outliers:
+using https://search.r-project.org/CRAN/refmans/mt/html/pca.outlier.html
+This package uses the Mahalanobis distances of PC1 and PC2 to compute outliers with a cutoff of 2.716203
+```{r}
+pca.outlier.1(t(scaled_combat_edata),scale=FALSE, center=FALSE,conf.level = 0.975, main="PCA Outliers")
+
+#GSM972097 is the only outlier
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
