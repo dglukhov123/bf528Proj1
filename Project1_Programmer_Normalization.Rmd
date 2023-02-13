@@ -61,13 +61,22 @@ title(main="Relative Log Expression (RLE), Zoomed in",xlab = "Sample", ylab = "R
 
 ```
 
+Pulling median values for RLE and NUSE and plotting histograms
+```{r}
+statNUSE <- as.data.frame(t(NUSE(data_PLM, type="stats")))
+statRLE <- as.data.frame(t(RLE(data_PLM, type="stats")))
+
+#plotting histograms:
+hist(statNUSE$median, main="Normalized Unscaled Standard Error (NUSE)",xlab = "Median Standard Error")
+
+hist(statRLE$median, main="Relative Log Expression (RLE)", xlab="Median RLE")
+```
 
 part 3.5
 
 normalizationcombatbatch --> adjustment variables
 normalizationcombatmod --> features of interest
 
-QUESTIONS --> what to read into combat (raw vs normalized), what to treat each variable as
 ```{r}
 metadata <- read.csv("./code/proj_metadata.csv")
 head(metadata)
