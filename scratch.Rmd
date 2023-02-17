@@ -11,8 +11,52 @@ knitr::opts_chunk$set(echo = TRUE)
 ## R Markdown
 
 ```{r}
-source("Untitled1.R")
-
+source("scratchmain.R")
 data <- load_expression("C:\\Users\\mamma\\OneDrive\\Documents\\proj1_intensity_data.csv")
-print (data)
+#(data)
+
+filtered <- filter_20(dplyr::select(data, -contains("GSM972097")))
+# 4.2
+#find variance of each probe
+data_frame <- as.data.frame(filtered)
+data_frame$keep_rows <- NULL
+data_frame$row_var = apply(data_frame[,-1], 1, var)
+row.names(data_frame) <- data_frame[,1]
+data_frame[,1] <- NULL
+df1 <- as.data.frame(filtered)
+df1 <- df1[,-1]
+df1$keep_rows <- NULL
+mat1 <- as.matrix(df1)
+gene_list <- c(mat1)
+median_row_variance <- median(data_frame$row_var)
+N <- ncol(data_frame)-1
+data_frame$population_variance <- median_row_variance
+probeids <- as.vector(filtered[,1])
+data_frame$keep_rows1 <- NULL
+data_frame2 <- cbind(data_frame, probeids)
+data_tib <- as_tibble(data_frame2)
+
+#print(filtered)
+#print(median_row_variance)
+#final_filtered <- coeff_filter(filtered2)
+#chi_square <- sqrt (((N-1) * (median_row_variance)^2) / ((med_population_variance)^2))
+# binded_data <- rbind(new_tibble[-1], chi_square)
+# calculate variances
+# calculate median of variance column wise
+# calculate the p value
+```
+```{r}
+data_tib_ordered <- dplyr::relocate(data_tib, any_of(c("probeids","row_var", "population_variance")))
+filtered2 <- chisqfilter(data_tib_ordered, N)
+final_filter_tib <- coeff_filter(filtered2)
+final_filter <- as.data.frame(final_filter_tib)
+row.names(final_filter) <- final_filter[,1]
+final_filter[,1] <- NULL
+final_filter[,134:136] <- NULL
+print (final_filter)
+
+```
+```{r}
+write.csv(final_filter, file="C:\\Users\\mamma\\OneDrive\\Documents\\bf528Proj1\\filtered_data.csv")
+
 ```
